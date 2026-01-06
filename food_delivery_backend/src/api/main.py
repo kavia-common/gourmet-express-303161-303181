@@ -6,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.api.routes.auth import router as auth_router
+from src.api.routes.delivery import router as delivery_router
 from src.api.routes.orders import router as orders_router
 from src.api.routes.restaurants import router as restaurants_router
 from src.db.session import get_engine
@@ -16,6 +17,7 @@ openapi_tags = [
     {"name": "auth", "description": "Authentication and role management endpoints."},
     {"name": "restaurants", "description": "Restaurant, menu, and menu item browsing/management endpoints."},
     {"name": "orders", "description": "Cart, order placement, and order status lifecycle endpoints."},
+    {"name": "delivery", "description": "Delivery workflow: assignment and courier actions (pickup/deliver)."},
 ]
 
 app = FastAPI(
@@ -85,3 +87,4 @@ async def db_health_check():
 app.include_router(auth_router)
 app.include_router(restaurants_router)
 app.include_router(orders_router)
+app.include_router(delivery_router)

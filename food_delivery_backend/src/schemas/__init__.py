@@ -30,6 +30,7 @@ from src.schemas.orders import (
     PlaceOrderRequest,
     UpdateOrderStatusRequest,
 )
+from src.schemas.delivery import AssignCourierRequest, CourierActionRequest, DeliveryAssignmentOut
 
 __all__ = [
     "RegisterRequest",
@@ -54,4 +55,7 @@ __all__ = [
     "UpdateOrderStatusRequest",
     "OrderOut",
     "OrderItemOut",
+    "AssignCourierRequest",
+    "CourierActionRequest",
+    "DeliveryAssignmentOut",
 ]
