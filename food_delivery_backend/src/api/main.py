@@ -1,7 +1,25 @@
+from __future__ import annotations
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
-app = FastAPI()
+from src.api.routes.auth import router as auth_router
+from src.db.session import get_engine
+from src.models.auth import Base
+
+openapi_tags = [
+    {"name": "health", "description": "Health and readiness endpoints."},
+    {"name": "auth", "description": "Authentication and role management endpoints."},
+]
+
+app = FastAPI(
+    title="Gourmet Express API",
+    description="Backend API for Gourmet Express food delivery platform (auth, restaurants, orders, tracking).",
+    version="0.1.0",
+    openapi_tags=openapi_tags,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -11,6 +29,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    """
+    Validate DB connectivity and ensure core auth tables exist.
+
+    If migrations are not applied yet, we create the minimal auth tables (users, roles, user_roles).
+    """
+    engine = get_engine()
+    try:
+        async with engine.begin() as conn:
+            # Connectivity check
+            await conn.execute(text("SELECT 1"))
+            # Create tables if needed (minimal safety-net, not a replacement for migrations)
+            await conn.run_sync(Base.metadata.create_all)
+    except SQLAlchemyError as e:
+        # Let the app start but clearly surface the issue in logs.
+        # In production you'd typically fail fast.
+        print(f"[startup] Database connectivity/table init failed: {e}")
+
+
+@app.get(
+    "/",
+    tags=["health"],
+    summary="Health check",
+    description="Basic health check endpoint.",
+)
 def health_check():
+    """Return basic service health."""
     return {"message": "Healthy"}
+
+
+@app.get(
+    "/health/db",
+    tags=["health"],
+    summary="Database health check",
+    description="Checks database connectivity by executing SELECT 1.",
+)
+async def db_health_check():
+    """Check database connectivity."""
+    engine = get_engine()
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except SQLAlchemyError as e:
+        return {"status": "error", "detail": str(e)}
+
+
+app.include_router(auth_router)
