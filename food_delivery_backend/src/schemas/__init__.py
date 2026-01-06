@@ -31,6 +31,12 @@ from src.schemas.orders import (
     UpdateOrderStatusRequest,
 )
 from src.schemas.delivery import AssignCourierRequest, CourierActionRequest, DeliveryAssignmentOut
+from src.schemas.payments import (
+    PaymentConfirmRequest,
+    PaymentConfirmResponse,
+    PaymentIntentCreateRequest,
+    PaymentIntentCreateResponse,
+)
 
 __all__ = [
     "RegisterRequest",
@@ -58,4 +64,8 @@ __all__ = [
     "AssignCourierRequest",
     "CourierActionRequest",
     "DeliveryAssignmentOut",
+    "PaymentIntentCreateRequest",
+    "PaymentIntentCreateResponse",
+    "PaymentConfirmRequest",
+    "PaymentConfirmResponse",
 ]

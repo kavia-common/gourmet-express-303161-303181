@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from src.api.routes.auth import router as auth_router
 from src.api.routes.delivery import router as delivery_router
 from src.api.routes.orders import router as orders_router
+from src.api.routes.payments import router as payments_router
 from src.api.routes.restaurants import router as restaurants_router
 from src.db.session import get_engine
 from src.models import Base  # import package so all model modules are registered on Base.metadata
@@ -18,6 +19,10 @@ openapi_tags = [
     {"name": "restaurants", "description": "Restaurant, menu, and menu item browsing/management endpoints."},
     {"name": "orders", "description": "Cart, order placement, and order status lifecycle endpoints."},
     {"name": "delivery", "description": "Delivery workflow: assignment and courier actions (pickup/deliver)."},
+    {
+        "name": "payments",
+        "description": "Payment flow endpoints (currently stubbed; designed to be swapped to Stripe).",
+    },
 ]
 
 app = FastAPI(
@@ -88,3 +93,4 @@ app.include_router(auth_router)
 app.include_router(restaurants_router)
 app.include_router(orders_router)
 app.include_router(delivery_router)
+app.include_router(payments_router)
