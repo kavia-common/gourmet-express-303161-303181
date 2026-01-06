@@ -21,6 +21,15 @@ from src.schemas.restaurants import (
     RestaurantOut,
     RestaurantUpdate,
 )
+from src.schemas.orders import (
+    CartCreateRequest,
+    CartItemRemoveRequest,
+    CartItemUpsertRequest,
+    OrderItemOut,
+    OrderOut,
+    PlaceOrderRequest,
+    UpdateOrderStatusRequest,
+)
 
 __all__ = [
     "RegisterRequest",
@@ -38,4 +47,11 @@ __all__ = [
     "MenuItemCreate",
     "MenuItemUpdate",
     "MenuItemOut",
+    "CartCreateRequest",
+    "CartItemUpsertRequest",
+    "CartItemRemoveRequest",
+    "PlaceOrderRequest",
+    "UpdateOrderStatusRequest",
+    "OrderOut",
+    "OrderItemOut",
 ]

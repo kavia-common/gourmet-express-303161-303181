@@ -6,14 +6,16 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.api.routes.auth import router as auth_router
+from src.api.routes.orders import router as orders_router
 from src.api.routes.restaurants import router as restaurants_router
 from src.db.session import get_engine
-from src.models.auth import Base
+from src.models import Base  # import package so all model modules are registered on Base.metadata
 
 openapi_tags = [
     {"name": "health", "description": "Health and readiness endpoints."},
     {"name": "auth", "description": "Authentication and role management endpoints."},
     {"name": "restaurants", "description": "Restaurant, menu, and menu item browsing/management endpoints."},
+    {"name": "orders", "description": "Cart, order placement, and order status lifecycle endpoints."},
 ]
 
 app = FastAPI(
@@ -82,3 +84,4 @@ async def db_health_check():
 
 app.include_router(auth_router)
 app.include_router(restaurants_router)
+app.include_router(orders_router)
