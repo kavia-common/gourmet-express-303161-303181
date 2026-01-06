@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db_session
 from src.deps.auth import get_current_user, require_roles
-from src.models.auth import User
+from src.models.auth import User, UserRole
 from src.models.restaurants import Menu, MenuItem, Restaurant
 from src.schemas.restaurants import (
     MenuItemCreate,
@@ -28,8 +28,7 @@ router = APIRouter(prefix="/restaurants", tags=["restaurants"])
 
 
 def _is_admin(user: User) -> bool:
-    roles = getattr(user, "_role_objects", [])
-    return any(r.name == "admin" for r in roles)
+    return (user.role.value if hasattr(user.role, "value") else str(user.role)) == UserRole.admin.value
 
 
 async def _get_restaurant_or_404(session: AsyncSession, restaurant_id: UUID) -> Restaurant:
@@ -45,7 +44,7 @@ async def _require_restaurant_manage_access(
     """
     Enforce that the user can manage the restaurant.
     - admin can manage anything
-    - restaurant_owner can manage only their own restaurants
+    - restaurant_admin can manage only their own restaurants
     """
     if _is_admin(user):
         return
@@ -133,16 +132,16 @@ async def get_restaurant(
     response_model=RestaurantOut,
     status_code=status.HTTP_201_CREATED,
     summary="Create a restaurant",
-    description="Create a new restaurant (role: restaurant_owner or admin).",
+    description="Create a new restaurant (role: restaurant_admin or admin).",
 )
 async def create_restaurant(
     payload: RestaurantCreate,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> RestaurantOut:
     owner_user_id = payload.owner_user_id
     if owner_user_id is None and not _is_admin(current_user):
-        # restaurant_owner creating their own restaurant
+        # restaurant_admin creating their own restaurant
         owner_user_id = UUID(str(current_user.id))
     if owner_user_id is not None and (not _is_admin(current_user)) and str(owner_user_id) != str(
         current_user.id
@@ -173,12 +172,12 @@ async def create_restaurant(
     "/{restaurant_id}",
     response_model=RestaurantOut,
     summary="Update a restaurant",
-    description="Update a restaurant (role: restaurant_owner or admin). Owners can only update their own restaurants.",
+    description="Update a restaurant (role: restaurant_admin or admin). Owners can only update their own restaurants.",
 )
 async def update_restaurant(
     restaurant_id: UUID,
     payload: RestaurantUpdate,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> RestaurantOut:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
@@ -197,11 +196,11 @@ async def update_restaurant(
     "/{restaurant_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a restaurant",
-    description="Delete a restaurant (role: restaurant_owner or admin). Owners can only delete their own restaurants.",
+    description="Delete a restaurant (role: restaurant_admin or admin). Owners can only delete their own restaurants.",
 )
 async def delete_restaurant(
     restaurant_id: UUID,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> Response:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
@@ -222,7 +221,7 @@ async def list_menus_by_restaurant(
     restaurant_id: UUID,
     include_inactive: bool = Query(
         False,
-        description="If true, include inactive menus (requires restaurant_owner for that restaurant or admin).",
+        description="If true, include inactive menus (requires restaurant_admin for that restaurant or admin).",
     ),
     current_user: Optional[User] = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
@@ -249,12 +248,12 @@ async def list_menus_by_restaurant(
     response_model=MenuOut,
     status_code=status.HTTP_201_CREATED,
     summary="Create a menu for a restaurant",
-    description="Create a menu under a restaurant (role: restaurant_owner for that restaurant or admin).",
+    description="Create a menu under a restaurant (role: restaurant_admin for that restaurant or admin).",
 )
 async def create_menu(
     restaurant_id: UUID,
     payload: MenuUpdate,  # same fields, no restaurant_id in body for this endpoint
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> MenuOut:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
@@ -284,13 +283,13 @@ async def create_menu(
     "/{restaurant_id}/menus/{menu_id}",
     response_model=MenuOut,
     summary="Update a menu",
-    description="Update a menu (role: restaurant_owner for that restaurant or admin).",
+    description="Update a menu (role: restaurant_admin for that restaurant or admin).",
 )
 async def update_menu(
     restaurant_id: UUID,
     menu_id: UUID,
     payload: MenuUpdate,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> MenuOut:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
@@ -317,12 +316,12 @@ async def update_menu(
     "/{restaurant_id}/menus/{menu_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a menu",
-    description="Delete a menu (role: restaurant_owner for that restaurant or admin).",
+    description="Delete a menu (role: restaurant_admin for that restaurant or admin).",
 )
 async def delete_menu(
     restaurant_id: UUID,
     menu_id: UUID,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> Response:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
@@ -348,7 +347,7 @@ async def list_menu_items(
     menu_id: UUID,
     include_unavailable: bool = Query(
         False,
-        description="If true, include unavailable items (requires restaurant_owner for that restaurant or admin).",
+        description="If true, include unavailable items (requires restaurant_admin for that restaurant or admin).",
     ),
     current_user: Optional[User] = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
@@ -380,13 +379,13 @@ async def list_menu_items(
     response_model=MenuItemOut,
     status_code=status.HTTP_201_CREATED,
     summary="Create a menu item",
-    description="Create a menu item under a menu (role: restaurant_owner for that restaurant or admin).",
+    description="Create a menu item under a menu (role: restaurant_admin for that restaurant or admin).",
 )
 async def create_menu_item(
     restaurant_id: UUID,
     menu_id: UUID,
     payload: MenuItemCreate,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> MenuItemOut:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
@@ -419,14 +418,14 @@ async def create_menu_item(
     "/{restaurant_id}/menus/{menu_id}/items/{item_id}",
     response_model=MenuItemOut,
     summary="Update a menu item",
-    description="Update a menu item (role: restaurant_owner for that restaurant or admin).",
+    description="Update a menu item (role: restaurant_admin for that restaurant or admin).",
 )
 async def update_menu_item(
     restaurant_id: UUID,
     menu_id: UUID,
     item_id: UUID,
     payload: MenuItemUpdate,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> MenuItemOut:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
@@ -453,13 +452,13 @@ async def update_menu_item(
     "/{restaurant_id}/menus/{menu_id}/items/{item_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a menu item",
-    description="Delete a menu item (role: restaurant_owner for that restaurant or admin).",
+    description="Delete a menu item (role: restaurant_admin for that restaurant or admin).",
 )
 async def delete_menu_item(
     restaurant_id: UUID,
     menu_id: UUID,
     item_id: UUID,
-    current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
+    current_user: User = Depends(require_roles(["restaurant_admin", "admin"])),
     session: AsyncSession = Depends(get_db_session),
 ) -> Response:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
