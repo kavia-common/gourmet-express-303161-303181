@@ -4,6 +4,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -202,13 +203,13 @@ async def delete_restaurant(
     restaurant_id: UUID,
     current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
     session: AsyncSession = Depends(get_db_session),
-) -> None:
+) -> Response:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
     await _require_restaurant_manage_access(session, restaurant, current_user)
 
     await session.execute(delete(Restaurant).where(Restaurant.id == restaurant_id))
     await session.commit()
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(
@@ -323,7 +324,7 @@ async def delete_menu(
     menu_id: UUID,
     current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
     session: AsyncSession = Depends(get_db_session),
-) -> None:
+) -> Response:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
     await _require_restaurant_manage_access(session, restaurant, current_user)
 
@@ -333,7 +334,7 @@ async def delete_menu(
 
     await session.execute(delete(Menu).where(Menu.id == menu_id))
     await session.commit()
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(
@@ -460,7 +461,7 @@ async def delete_menu_item(
     item_id: UUID,
     current_user: User = Depends(require_roles(["restaurant_owner", "admin"])),
     session: AsyncSession = Depends(get_db_session),
-) -> None:
+) -> Response:
     restaurant = await _get_restaurant_or_404(session, restaurant_id)
     await _require_restaurant_manage_access(session, restaurant, current_user)
 
@@ -474,4 +475,4 @@ async def delete_menu_item(
 
     await session.execute(delete(MenuItem).where(MenuItem.id == item_id))
     await session.commit()
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
