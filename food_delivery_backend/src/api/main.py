@@ -10,6 +10,7 @@ from src.api.routes.delivery import router as delivery_router
 from src.api.routes.orders import router as orders_router
 from src.api.routes.payments import router as payments_router
 from src.api.routes.restaurants import router as restaurants_router
+from src.api.routes.tracking import router as tracking_router
 from src.db.session import get_engine
 from src.models import Base  # import package so all model modules are registered on Base.metadata
 
@@ -19,6 +20,7 @@ openapi_tags = [
     {"name": "restaurants", "description": "Restaurant, menu, and menu item browsing/management endpoints."},
     {"name": "orders", "description": "Cart, order placement, and order status lifecycle endpoints."},
     {"name": "delivery", "description": "Delivery workflow: assignment and courier actions (pickup/deliver)."},
+    {"name": "tracking", "description": "Order tracking events + real-time WebSocket streaming."},
     {
         "name": "payments",
         "description": "Payment flow endpoints (currently stubbed; designed to be swapped to Stripe).",
@@ -89,8 +91,29 @@ async def db_health_check():
         return {"status": "error", "detail": str(e)}
 
 
+@app.get(
+    "/docs/realtime",
+    tags=["tracking"],
+    summary="Real-time tracking usage notes",
+    description="Lightweight documentation for consuming real-time tracking WebSocket streams.",
+)
+def realtime_docs():
+    """Provide quick usage notes for real-time tracking (WebSocket)."""
+    return {
+        "websocket": {
+            "url_template": "/tracking/ws/orders/{order_id}?token={jwt}",
+            "notes": [
+                "Pass the JWT access token as query param `token` (recommended for browsers).",
+                "Server messages are JSON strings with shape: {type, payload}.",
+                "Use /tracking/orders/{order_id}/events to fetch history (REST).",
+            ],
+        }
+    }
+
+
 app.include_router(auth_router)
 app.include_router(restaurants_router)
 app.include_router(orders_router)
 app.include_router(delivery_router)
+app.include_router(tracking_router)
 app.include_router(payments_router)

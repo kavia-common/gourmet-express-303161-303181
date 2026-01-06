@@ -37,6 +37,7 @@ from src.schemas.payments import (
     PaymentIntentCreateRequest,
     PaymentIntentCreateResponse,
 )
+from src.schemas.tracking import TrackingEventCreateRequest, TrackingEventOut
 
 __all__ = [
     "RegisterRequest",
@@ -68,4 +69,6 @@ __all__ = [
     "PaymentIntentCreateResponse",
     "PaymentConfirmRequest",
     "PaymentConfirmResponse",
+    "TrackingEventCreateRequest",
+    "TrackingEventOut",
 ]
