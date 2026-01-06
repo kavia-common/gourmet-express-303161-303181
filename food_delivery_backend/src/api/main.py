@@ -28,6 +28,10 @@ openapi_tags = [
     },
 ]
 
+# Ensure auth works in local/dev environments even when env vars are not provided.
+# In production deployments, JWT_SECRET should always be explicitly set.
+os.environ.setdefault("JWT_SECRET", "dev-insecure-change-me")
+
 app = FastAPI(
     title="Gourmet Express API",
     description="Backend API for Gourmet Express food delivery platform (auth, restaurants, orders, tracking).",

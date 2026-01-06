@@ -5,22 +5,24 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 from jose import jwt
-from passlib.context import CryptContext
-
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from passlib.hash import pbkdf2_sha256
 
 
 # PUBLIC_INTERFACE
 def hash_password(password: str) -> str:
-    """Hash a plaintext password using bcrypt."""
-    return _pwd_context.hash(password)
+    """Hash a plaintext password.
+
+    NOTE: We intentionally use pbkdf2_sha256 instead of bcrypt because the runtime
+    environment may ship with bcrypt>=4/5, which is incompatible with passlib's
+    bcrypt handler and can cause 500s during registration/login.
+    """
+    return pbkdf2_sha256.hash(password)
 
 
 # PUBLIC_INTERFACE
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plaintext password against its bcrypt hash."""
-    return _pwd_context.verify(plain_password, hashed_password)
+    """Verify a plaintext password against the stored hash."""
+    return pbkdf2_sha256.verify(plain_password, hashed_password)
 
 
 def _jwt_secret() -> str:
