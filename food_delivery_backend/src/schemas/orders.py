@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.models.orders import OrderStatus
+from src.models import OrderStatus
 
 
 class OrderItemOut(BaseModel):
@@ -23,7 +23,7 @@ class OrderItemOut(BaseModel):
 
 class OrderOut(BaseModel):
     id: UUID = Field(..., description="Order id.")
-    customer_user_id: int = Field(..., description="Customer user id who owns the order.")
+    customer_user_id: UUID = Field(..., description="Customer user id who owns the order.")
     restaurant_id: UUID = Field(..., description="Restaurant id for the order.")
     status: OrderStatus = Field(..., description="Current order status.")
 
@@ -32,7 +32,7 @@ class OrderOut(BaseModel):
     delivery_fee_cents: int = Field(..., ge=0, description="Delivery fee in cents.")
     total_cents: int = Field(..., ge=0, description="Total in cents.")
 
-    courier_user_id: Optional[int] = Field(None, description="Assigned courier user id (if any).")
+    courier_user_id: Optional[UUID] = Field(None, description="Assigned courier user id (if any).")
     placed_at: Optional[datetime] = Field(None, description="Timestamp when the order was placed.")
 
     items: List[OrderItemOut] = Field(default_factory=list, description="Order items.")

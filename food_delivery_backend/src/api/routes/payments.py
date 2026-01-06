@@ -8,8 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from src.db.session import get_db_session
 from src.deps.auth import get_current_user
-from src.models.auth import Role, User
-from src.models.orders import Order, OrderStatus
+from src.models import Order, User, UserRole
 from src.schemas.payments import (
     PaymentConfirmRequest,
     PaymentConfirmResponse,
@@ -21,13 +20,8 @@ from src.services.payments import confirm_payment_stub, create_payment_intent_st
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-def _has_role(user: User, role_name: str) -> bool:
-    roles: list[Role] = getattr(user, "_role_objects", [])
-    return any(r.name == role_name for r in roles)
-
-
 def _is_admin(user: User) -> bool:
-    return _has_role(user, "admin")
+    return (user.role.value if hasattr(user.role, "value") else str(user.role)) == UserRole.admin.value
 
 
 async def _get_order_or_404(session: AsyncSession, order_id: UUID) -> Order:
@@ -41,11 +35,11 @@ def _assert_customer_owns_order(order: Order, user: User) -> None:
     """
     Customers may act only on their own orders. Admin may act on any order.
 
-    Note: restaurant_owner/courier are not permitted to pay/confirm payment for customer orders.
+    Note: restaurant_admin/delivery_person are not permitted to pay/confirm payment for customer orders.
     """
     if _is_admin(user):
         return
-    if int(order.customer_user_id) != int(user.id):
+    if order.customer_user_id != user.id:
         raise HTTPException(status_code=403, detail="Not permitted to access this order")
 
 
@@ -57,7 +51,7 @@ def _assert_customer_owns_order(order: Order, user: User) -> None:
     summary="Create a payment intent (stub)",
     description=(
         "Simulates creating a payment intent for an order (to be swapped with Stripe later). "
-        "Validates the order is in CREATED status and the provided amount matches order.total_cents. "
+        "Validates the order is in pending status and the provided amount matches order.total_cents. "
         "Returns a fake client_secret."
     ),
 )
@@ -77,7 +71,6 @@ async def create_payment_intent(
     order = await _get_order_or_404(session, payload.order_id)
     _assert_customer_owns_order(order, current_user)
 
-    # Delegate to service module for provider abstraction.
     client_secret, amount_cents, currency = await create_payment_intent_stub(
         session=session,
         order_id=order.id,
@@ -101,8 +94,8 @@ async def create_payment_intent(
     summary="Confirm a payment (stub)",
     description=(
         "Simulates confirmation of a payment intent (to be swapped with Stripe later). "
-        "Validates client_secret and marks the order as PAID (if currently CREATED). "
-        "Idempotent when order is already PAID or beyond."
+        "Validates client_secret and marks the order as confirmed (if currently pending). "
+        "Idempotent when order is already confirmed or beyond."
     ),
 )
 async def confirm_payment(
@@ -130,6 +123,6 @@ async def confirm_payment(
     return PaymentConfirmResponse(
         order_id=updated.id,
         status="succeeded",
-        order_status=OrderStatus(updated.status).value,
+        order_status=updated.status.value,
         provider="stub",
     )
