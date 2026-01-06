@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+import os
 
 from src.api.routes.auth import router as auth_router
 from src.api.routes.delivery import router as delivery_router
@@ -34,9 +35,12 @@ app = FastAPI(
     openapi_tags=openapi_tags,
 )
 
+_allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").strip()
+_allowed_origins = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()] if _allowed_origins_env else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
