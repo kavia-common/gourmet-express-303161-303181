@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Enum as SAEnum, Text, func
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -28,7 +28,12 @@ class User(Base):
 
     __tablename__ = "users"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    # Postgres seeded schema: id uuid PRIMARY KEY DEFAULT gen_random_uuid()
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
     email: Mapped[str] = mapped_column(Text, nullable=False, unique=True, index=True)
 
     # Seeded schema uses password_hash (nullable) and full_name/phone.
